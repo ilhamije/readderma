@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis Results</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-900 min-h-screen p-4 pb-20">
+
+    <div class="max-w-md mx-auto w-full">
+        <!-- Header -->
+        <div class="mb-6 flex items-center">
+            <a href="/" class="text-slate-500 hover:text-slate-700 mr-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+            </a>
+            <h1 class="text-xl font-bold text-slate-800">Analysis Results</h1>
+        </div>
+
+        <!-- AI Analysis Result -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-6">
+            <div class="p-6">
+                <div class="flex items-start justify-between mb-4">
+                    <div>
+                        <span
+                            class="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold uppercase tracking-wide mb-2">AI
+                            Assessment</span>
+                        <h2 class="text-2xl font-bold text-slate-900">{{ condition }}</h2>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-sm text-slate-500 mb-1">Confidence</div>
+                        <div
+                            class="font-bold text-slate-800 {{ 'text-green-600' if confidence == 'High' else 'text-yellow-600' if confidence == 'Medium' else 'text-red-500' }}">
+                            {{ confidence }}
+                        </div>
+                    </div>
+                </div>
+
+                <p class="text-slate-600 leading-relaxed text-sm bg-slate-50 p-4 rounded-xl">
+                    {{ explanation }}
+                </p>
+            </div>
+            <div class="h-2 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
+        </div>
+
+        {% if condition == "Atopic Dermatitis" %}
+
+        <!-- Trials Section -->
+        <div class="mb-4 flex items-center justify-between">
+            <h3 class="text-lg font-bold text-slate-800">Recruiting Trials</h3>
+            <span class="text-xs font-semibold bg-green-100 text-green-700 px-2 py-1 rounded">{{ trials|length }}
+                Found</span>
+        </div>
+
+        {% if trials %}
+        <div class="space-y-4">
+            {% for trial in trials %}
+            <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                <div class="flex justify-between items-start mb-2">
+                    <span class="text-[10px] font-bold tracking-wider text-slate-400 uppercase">{{ trial.nct_id
+                        }}</span>
+                    <span
+                        class="px-2 py-0.5 bg-green-50 text-green-600 text-[10px] font-bold uppercase rounded-sm border border-green-100">
+                        {{ trial.status }}
+                    </span>
+                </div>
+
+                <h4 class="font-bold text-slate-800 mb-2 leading-tight">{{ trial.title }}</h4>
+
+                <div class="flex flex-wrap gap-2 mb-3">
+                    <span class="inline-flex items-center text-xs text-slate-500 bg-slate-50 px-2 py-1 rounded">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        {{ trial.locations[0] if trial.locations else 'Multiple Locations' }}
+                    </span>
+                    {% if trial.phases %}
+                    <span class="inline-flex items-center text-xs text-slate-500 bg-slate-50 px-2 py-1 rounded">
+                        Ph: {{ trial.phases | join(', ') }}
+                    </span>
+                    {% endif %}
+                </div>
+
+                <div class="bg-blue-50/50 p-3 rounded-lg mb-4 border border-blue-100/50">
+                    <p class="text-xs font-semibold text-blue-800 mb-1 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Why this matches you
+                    </p>
+                    <p class="text-xs text-slate-600 leading-relaxed">
+                        {{ trial.match_reason }}
+                    </p>
+                </div>
+
+                <a href="https://clinicaltrials.gov/study/{{ trial.nct_id }}" target="_blank"
+                    class="block w-full text-center py-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors">
+                    View Official Study
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="bg-yellow-50 p-6 rounded-xl text-center border border-yellow-100">
+            <p class="text-yellow-800 font-medium">No recruiting trials found at this moment.</p>
+            <p class="text-yellow-600 text-sm mt-1">Check back later or consult a dermatologist.</p>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <!-- Healthy/Other Condition State -->
+        <div class="bg-green-50 p-6 rounded-xl text-center border border-green-100">
+            <div class="inline-flex items-center justify-center w-12 h-12 bg-green-100 rounded-full mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>
+            <h3 class="text-green-900 font-bold mb-2">Good News</h3>
+            <p class="text-green-800 text-sm">
+                Based on the assessment, this doesn't appear to be Atopic Dermatitis requiring clinical trial
+                intervention.
+            </p>
+        </div>
+        {% endif %}
+
+        <div class="mt-8 mb-4 border-t border-slate-200 pt-6 text-center">
+            <p class="text-xs text-slate-400 max-w-[280px] mx-auto leading-relaxed">
+                Disclaimer: AI analysis is for informational purposes only. Always consult a healthcare professional.
+            </p>
+        </div>
+    </div>
+
+</body>
+
+</html>
