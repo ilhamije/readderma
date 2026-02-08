@@ -10,11 +10,11 @@ classifier = None
 def load_ai_model():
     """Load the Hugging Face model on startup."""
     global classifier
-    print("Loading AI Model: hcarrion/atopic_dermatitis...")
+    print("Loading AI Model: Jayanth2002/dinov2-base-finetuned-SkinDisease...")
     try:
         classifier = pipeline(
             "image-classification",
-            model="hcarrion/atopic_dermatitis"
+            model="Jayanth2002/dinov2-base-finetuned-SkinDisease"
         )
         print("AI Model loaded successfully.")
     except Exception as e:

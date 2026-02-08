@@ -1,4 +1,4 @@
-# Project: AI-Assisted Clinical Trial Discovery (Atopic Dermatitis)
+# Project: AI-Assisted Clinical Trial Discovery (Skin Conditions)
 
 ## Your Role
 You are an AI coding agent building a **working prototype** for a 24-hour hackathon.
@@ -35,8 +35,11 @@ It does **NOT** provide medical diagnosis or treatment advice.
 
 ---
 
+## Specific Skin Conditions
+'Basal Cell Carcinoma', 'Darier_s Disease', 'Epidermolysis Bullosa Pruriginosa', 'Hailey-Hailey Disease', 'Herpes Simplex', 'Impetigo', 'Larva Migrans', 'Leprosy Borderline', 'Leprosy Lepromatous', 'Leprosy Tuberculoid', 'Lichen Planus', 'Lupus Erythematosus Chronicus Discoides', 'Melanoma', 'Molluscum Contagiosum', 'Mycosis Fungoides', 'Neurofibromatosis', 'Papilomatosis Confluentes And Reticulate', 'Pediculosis Capitis', 'Pityriasis Rosea', 'Porokeratosis Actinic', 'Psoriasis', 'Tinea Corporis', 'Tinea Nigra', 'Tungiasis', 'actinic keratosis', 'dermatofibroma', 'nevus', 'pigmented benign keratosis', 'seborrheic keratosis', 'squamous cell carcinoma', 'vascular lesion'
+
 ## Scope Constraints (VERY IMPORTANT)
-- Condition focus: **Atopic Dermatitis only**
+- Condition focus: **Skin Conditions only**
 - Primary user: **Patient or caregiver**
 - Platform: **Web app (mobile-friendly)**
 - No authentication or user accounts
@@ -52,7 +55,7 @@ If a feature does not directly support trial discovery, DO NOT build it.
 1. User lands on a simple page explaining the tool
 2. User uploads or captures a skin image
 3. AI returns:
-   - A condition category (Atopic Dermatitis)
+   - A condition category (Skin Conditions)
    - A confidence band (Low / Medium / High)
    - A plain-language explanation
 4. The system fetches **actively recruiting clinical trials**
@@ -72,7 +75,7 @@ If a feature does not directly support trial discovery, DO NOT build it.
 ### 2. AI Pre-Screening (NOT Diagnosis)
 - Use a pretrained, mocked, or simplified skin classifier
 - Output:
-  - Condition category: “Atopic Dermatitis”
+  - Condition category: “Skin Conditions”
   - Confidence band: Low / Medium / High
   - Non-technical explanation
 - NEVER use the word “diagnosis”
@@ -83,7 +86,7 @@ If a feature does not directly support trial discovery, DO NOT build it.
 - Use **ClinicalTrials.gov public API**
 - Filter criteria:
   - Recruiting status: ACTIVE / RECRUITING
-  - Condition: Atopic Dermatitis
+  - Condition: Skin Conditions
 - Use an LLM to:
   - Simplify eligibility text
   - Generate a short “Why this may fit you” explanation
