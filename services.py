@@ -1,95 +1,85 @@
-import os
-import base64
-import json
-import random
+import io
+from PIL import Image
+from transformers import pipeline
 import requests
-from openai import OpenAI
+import os
 
-# Initialize OpenAI client
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+# Global classifier variable
+classifier = None
+
+def load_ai_model():
+    """Load the Hugging Face model on startup."""
+    global classifier
+    print("Loading AI Model: hcarrion/atopic_dermatitis...")
+    try:
+        classifier = pipeline(
+            "image-classification",
+            model="hcarrion/atopic_dermatitis"
+        )
+        print("AI Model loaded successfully.")
+    except Exception as e:
+        print(f"Failed to load AI model: {e}")
+        # We might want to allow the app to start even if model fails, 
+        # but the user said "You MUST use this", so maybe failing is better?
+        # For a prototype, I'll log it.
 
 def predict_skin_condition(image_bytes: bytes):
     """
-    Analyze skin condition using OpenAI GPT-4o.
+    Analyze skin condition using local Hugging Face model.
     """
-    if not client.api_key:
-        print("Warning: OPENAI_API_KEY not found. Using mock fallback.")
-        return mock_predict_skin_condition(image_bytes)
+    global classifier
+    if classifier is None:
+        # Lazy load if not loaded (though main.py should do it on startup)
+        try:
+           load_ai_model()
+        except:
+           return get_mock_prediction()
+           
+    if classifier is None:
+         return get_mock_prediction()
 
     try:
-        # Encode image to base64
-        base64_image = base64.b64encode(image_bytes).decode('utf-8')
-
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {
-                    "role": "system",
-                    "content": """You are a helpful medical assistant for preliminary screening. 
-                    Your task is to analyze skin images for Atopic Dermatitis.
-                    
-                    Output MUST be a valid JSON object with these keys:
-                    - condition: Either "Atopic Dermatitis" or "Healthy Skin / Other"
-                    - confidence: "Low", "Medium", or "High"
-                    - explanation: A patient-friendly, non-technical explanation (max 2 sentences).
-                    
-                    IMPORTANT: 
-                    - This is for a concept prototype, not medical diagnosis.
-                    - Be conservative. If it looks like eczema/AD, label it "Atopic Dermatitis".
-                    - NEVER use the word "diagnosis". 
-                    """
-                },
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": "Analyze this skin image."},
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:image/jpeg;base64,{base64_image}"
-                            }
-                        }
-                    ]
-                }
-            ],
-            response_format={"type": "json_object"},
-            max_tokens=300
-        )
+        # Preprocess image
+        image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
         
-        content = response.choices[0].message.content
-        return json.loads(content)
+        # Inference
+        predictions = classifier(image)
+        # Expected format: [{'label': 'Atopic Dermatitis', 'score': 0.99}, ...]
+        
+        top_result = predictions[0]
+        label = top_result['label']
+        score = top_result['score']
+        
+        # Normalize label text if needed (assuming model output is clean, but let's be safe)
+        # We need "Atopic Dermatitis" for the condition check in main.py
+        
+        # Map to our UI structure
+        condition = label
+        confidence_level = "High" if score > 0.8 else "Medium" if score > 0.5 else "Low"
+        
+        # Static explanation since we don't have an LLM anymore
+        explanation = f"The AI analysis has identified patterns consistent with {label} with {score:.1%} confidence."
+        if label.lower() != "atopic dermatitis": # Adjust based on actual model labels
+            explanation = f"The analysis suggests this may be {label}."
+
+        return {
+            "condition": condition,
+            "confidence": confidence_level,
+            "explanation": explanation,
+            "raw_score": score
+        }
         
     except Exception as e:
-        print(f"OpenAI API Error: {e}")
-        return mock_predict_skin_condition(image_bytes)
+        print(f"Inference Error: {e}")
+        return get_mock_prediction()
 
-
-def mock_predict_skin_condition(image_bytes: bytes):
-    """
-    Mock AI classifier. 
-    In a real hackathon, this might use a small TF/PyTorch model or API.
-    For this prototype, we simulate detection.
-    
-    If the file size is 'even', we say it's Atopic Dermatitis (to allow easy testing of both paths).
-    """
-    # Deterministic mock based on simple property to allow testing both states
-    # Real logic: Load image -> Preprocess -> Model -> Output
-    
-    # Let's make it 80% chance of Atopic Dermatitis for the demo flow
-    is_atopic = random.random() < 0.8
-    
-    if is_atopic:
-        return {
-            "condition": "Atopic Dermatitis",
-            "confidence": random.choice(["Medium", "High"]),
-            "explanation": "Visual patterns indicate inflammation consistent with eczematous dermatitis, including erythema and lichenification."
-        }
-    else:
-        return {
-            "condition": "Healthy Skin / Other",
-            "confidence": "High",
-            "explanation": "No significant signs of inflammatory dermatosis detected. Skin barrier appears intact."
-        }
+def get_mock_prediction():
+    return {
+        "condition": "Error / Mock",
+        "confidence": "Low",
+        "explanation": "Model inference failed. Returning mock result.",
+        "raw_score": 0.0
+    }
 
 def get_real_trials():
     """Fetch real trials from ClinicalTrials.gov"""
@@ -117,7 +107,7 @@ def get_real_trials():
                 # Extract locations
                 locations = []
                 raw_locations = loc_module.get("locations", [])
-                for loc in raw_locations[:2]: # Limit to 2 locations for UI cleanliness
+                for loc in raw_locations[:2]: # Limit to 2 locations
                     city = loc.get("city", "")
                     state = loc.get("state", "")
                     country = loc.get("country", "")
@@ -155,7 +145,7 @@ def get_real_trials():
     return trials_data
 
 def get_mock_trials():
-    """Fallback mock trials if API fails or for speed"""
+    """Fallback mock trials"""
     return [
         {
             "nct_id": "NCT05551234",

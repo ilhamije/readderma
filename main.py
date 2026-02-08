@@ -7,11 +7,20 @@ import uuid
 import asyncio
 import time
 from dotenv import load_dotenv
-from services import predict_skin_condition, get_real_trials, get_mock_trials
+from contextlib import asynccontextmanager
+from services import predict_skin_condition, get_real_trials, get_mock_trials, load_ai_model
 
 load_dotenv()
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(fastapi_app: FastAPI):
+    # Load model on startup
+    print("Startup: Initializing AI model...")
+    load_ai_model()
+    yield
+    print("Shutdown: Cleanup.")
+
+app = FastAPI(lifespan=lifespan)
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")

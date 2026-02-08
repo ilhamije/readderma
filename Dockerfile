@@ -2,20 +2,27 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies
+# Environment settings
+ENV PYTHONUNBUFFERED=1
+ENV TRANSFORMERS_CACHE=/app/cache
+
+# (Optional) install system deps only if needed
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for caching
+# Create cache directory for Hugging Face models
+RUN mkdir -p /app/cache
+
+# Install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application
+# Copy application code
 COPY . .
 
-# Expose the port
-EXPOSE 8080
+# Expose FastAPI port
+EXPOSE 8000
 
-# Run the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
+# Run FastAPI app
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

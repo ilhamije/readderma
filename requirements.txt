@@ -4,5 +4,7 @@ python-multipart
 requests
 jinja2
 httpx
-openai
 python-dotenv
+torch
+transformers
+pillow
