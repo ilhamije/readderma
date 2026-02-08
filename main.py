@@ -1,15 +1,15 @@
-from fastapi import FastAPI, Request, UploadFile, File, Form
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, Request, UploadFile, File, BackgroundTasks
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 import uvicorn
-import shutil
-import os
+import uuid
+import asyncio
+import time
 from dotenv import load_dotenv
+from services import predict_skin_condition, get_real_trials, get_mock_trials
 
 load_dotenv()
-import requests
-from services import predict_skin_condition, get_mock_trials
 
 app = FastAPI()
 
@@ -19,77 +19,93 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # Templates
 templates = Jinja2Templates(directory="templates")
 
+# In-memory storage for results (No DB as per constraints)
+# Key: task_id, Value: dict with status and result
+# In a real app, use Redis or DB.
+tasks_db = {}
+
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
-@app.post("/analyze", response_class=HTMLResponse)
-async def analyze_skin(request: Request, file: UploadFile = File(...)):
-    # 1. Read Image
+def process_analysis(task_id: str, image_bytes: bytes):
+    """Background task to process image and fetch trials (Sync for threadpool execution)"""
+    try:
+        # 1. AI Analysis
+        # Simulating a slight delay to make the skeleton loader visible and meaningful
+        # Remove sleep in production if strictly speed-focused, but good for UX demo
+        time.sleep(1.5) 
+        
+        ai_result = predict_skin_condition(image_bytes)
+        
+        trials_data = []
+        
+        # 2. If Atopic Dermatitis, fetch trials
+        if ai_result["condition"] == "Atopic Dermatitis":
+            trials_data = get_real_trials()
+        
+        # 3. Store Result
+        tasks_db[task_id] = {
+            "status": "completed",
+            "data": {
+                "condition": ai_result["condition"],
+                "confidence": ai_result["confidence"],
+                "explanation": ai_result["explanation"],
+                "trials": trials_data
+            }
+        }
+    except Exception as e:
+        print(f"Task Error: {e}")
+        tasks_db[task_id] = {
+            "status": "error",
+            "error": str(e)
+        }
+
+@app.post("/analyze")
+async def analyze_skin(request: Request, background_tasks: BackgroundTasks, file: UploadFile = File(...)):
+    # Generate unique ID
+    task_id = str(uuid.uuid4())
+    
+    # Read file content immediately
     contents = await file.read()
     
-    # 2. AI Analysis
-    ai_result = predict_skin_condition(contents)
+    # Set initial status
+    tasks_db[task_id] = {"status": "processing"}
     
-    trials_data = []
+    # Add to background tasks
+    background_tasks.add_task(process_analysis, task_id, contents)
     
-    # 3. If Atopic Dermatitis, fetch trials
-    if ai_result["condition"] == "Atopic Dermatitis":
-        # Try real API first
-        try:
-            url = "https://clinicaltrials.gov/api/v2/studies"
-            params = {
-                "query.cond": "Atopic Dermatitis",
-                "filter.overallStatus": "RECRUITING",
-                "pageSize": 5,
-                "fields": "NCTId,ProtocolSection.IdentificationModule.BriefTitle,ProtocolSection.StatusModule.OverallStatus,ProtocolSection.DesignModule.PhaseList,ProtocolSection.EligibilityModule.EligibilityCriteria,ProtocolSection.ContactsLocationsModule.LocationList"
-            }
-            resp = requests.get(url, params=params, timeout=5)
-            if resp.status_code == 200:
-                data = resp.json()
-                studies = data.get("studies", [])
-                
-                # Transform to our UI format
-                for study in studies:
-                    proto = study.get("protocolSection", {})
-                    ident = proto.get("identificationModule", {})
-                    status = proto.get("statusModule", {})
-                    design = proto.get("designModule", {})
-                    loc_module = proto.get("contactsLocationsModule", {})
-                    
-                    # Extract locations (just city/state)
-                    locations = []
-                    for loc in loc_module.get("locationList", {}).get("location", [])[:2]:
-                        city = loc.get("city", "")
-                        state = loc.get("state", "")
-                        if city: locations.append(f"{city}, {state}".strip(", "))
-                    
-                    # Simple AI "Match Reason" (Mocked for now since we don't have a real LLM connected for context)
-                    # AGENT.MD says "Use LLM to simplify... Generate Why this may fit you"
-                    # We will mock this specifically for the hackathon demo unless we have an OpenAI key.
-                    # Since I cannot ask for an API Key, I will use a template string.
-                    match_reason = "This study targets patients with active Atopic Dermatitis. Your screening suggests you meet the primary inclusion criteria."
+    # Redirect to processing page
+    return RedirectResponse(url=f"/processing/{task_id}", status_code=303)
 
-                    trials_data.append({
-                        "nct_id": ident.get("nctId", "N/A"),
-                        "title": ident.get("briefTitle", "Untitled Study"),
-                        "status": status.get("overallStatus", "Unknown"),
-                        "phases": design.get("phaseList", {}).get("phase", []),
-                        "locations": locations,
-                        "match_reason": match_reason
-                    })
-            else:
-                 trials_data = get_mock_trials()
-        except:
-            # Fallback to mock if API fails (offline or timeout)
-            trials_data = get_mock_trials()
+@app.get("/processing/{task_id}", response_class=HTMLResponse)
+async def processing_page(request: Request, task_id: str):
+    if task_id not in tasks_db:
+        return RedirectResponse(url="/")
+        
+    return templates.TemplateResponse("processing.html", {"request": request, "task_id": task_id})
 
+@app.get("/status/{task_id}")
+async def get_status(task_id: str):
+    task = tasks_db.get(task_id)
+    if not task:
+        return JSONResponse({"status": "not_found"}, status_code=404)
+    return JSONResponse(task)
+
+@app.get("/result/{task_id}", response_class=HTMLResponse)
+async def result_page(request: Request, task_id: str):
+    task = tasks_db.get(task_id)
+    if not task or task.get("status") != "completed":
+        return RedirectResponse(url=f"/processing/{task_id}")
+    
+    data = task["data"]
+    
     return templates.TemplateResponse("results.html", {
         "request": request,
-        "condition": ai_result["condition"],
-        "confidence": ai_result["confidence"],
-        "explanation": ai_result["explanation"],
-        "trials": trials_data
+        "condition": data["condition"],
+        "confidence": data["confidence"],
+        "explanation": data["explanation"],
+        "trials": data["trials"]
     })
 
 if __name__ == "__main__":

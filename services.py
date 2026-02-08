@@ -2,6 +2,7 @@ import os
 import base64
 import json
 import random
+import requests
 from openai import OpenAI
 
 # Initialize OpenAI client
@@ -89,6 +90,69 @@ def mock_predict_skin_condition(image_bytes: bytes):
             "confidence": "High",
             "explanation": "No significant signs of inflammatory dermatosis detected. Skin barrier appears intact."
         }
+
+def get_real_trials():
+    """Fetch real trials from ClinicalTrials.gov"""
+    trials_data = []
+    try:
+        url = "https://clinicaltrials.gov/api/v2/studies"
+        params = {
+            "query.cond": "Atopic Dermatitis",
+            "filter.overallStatus": "RECRUITING",
+            "pageSize": 5
+        }
+        resp = requests.get(url, params=params, timeout=10)
+        if resp.status_code == 200:
+            data = resp.json()
+            studies = data.get("studies", [])
+            
+            # Transform to our UI format
+            for study in studies:
+                proto = study.get("protocolSection", {})
+                ident = proto.get("identificationModule", {})
+                status = proto.get("statusModule", {})
+                design = proto.get("designModule", {})
+                loc_module = proto.get("contactsLocationsModule", {})
+                
+                # Extract locations
+                locations = []
+                raw_locations = loc_module.get("locations", [])
+                for loc in raw_locations[:2]: # Limit to 2 locations for UI cleanliness
+                    city = loc.get("city", "")
+                    state = loc.get("state", "")
+                    country = loc.get("country", "")
+                    
+                    loc_str = city
+                    if state:
+                        loc_str += f", {state}"
+                    elif country:
+                        loc_str += f", {country}"
+                        
+                    if loc_str: 
+                        locations.append(loc_str)
+                
+                # Ensure phases is a list
+                phases = design.get("phases", [])
+                if not isinstance(phases, list):
+                    phases = [phases] if phases else []
+                
+                match_reason = "This study targets patients with active Atopic Dermatitis. Your screening suggests you meet the primary inclusion criteria."
+
+                trials_data.append({
+                    "nct_id": ident.get("nctId", "N/A"),
+                    "title": ident.get("briefTitle", "Untitled Study"),
+                    "status": status.get("overallStatus", "Unknown"),
+                    "phases": phases,
+                    "locations": locations,
+                    "match_reason": match_reason
+                })
+        else:
+             trials_data = get_mock_trials()
+    except Exception as e:
+        print(f"API Error: {e}")
+        trials_data = get_mock_trials()
+    
+    return trials_data
 
 def get_mock_trials():
     """Fallback mock trials if API fails or for speed"""
