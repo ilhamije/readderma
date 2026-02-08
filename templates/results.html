@@ -55,16 +55,14 @@
             <div class="h-2 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
         </div>
 
-        {% if condition == "Atopic Dermatitis" %}
-
         <!-- Trials Section -->
-        <div class="mb-4 flex items-center justify-between">
-            <h3 class="text-lg font-bold text-slate-800">Recruiting Trials</h3>
+        {% if trials %}
+        <div class="mb-4 flex items-center justify-between mt-8">
+            <h3 class="text-lg font-bold text-slate-800">Recruiting Trials for {{ condition }}</h3>
             <span class="text-xs font-semibold bg-green-100 text-green-700 px-2 py-1 rounded">{{ trials|length }}
                 Found</span>
         </div>
 
-        {% if trials %}
         <div class="space-y-4">
             {% for trial in trials %}
             <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
@@ -118,26 +116,20 @@
             </div>
             {% endfor %}
         </div>
-        {% else %}
-        <div class="bg-yellow-50 p-6 rounded-xl text-center border border-yellow-100">
-            <p class="text-yellow-800 font-medium">No recruiting trials found at this moment.</p>
-            <p class="text-yellow-600 text-sm mt-1">Check back later or consult a dermatologist.</p>
-        </div>
-        {% endif %}
 
         {% else %}
-        <!-- Healthy/Other Condition State -->
-        <div class="bg-green-50 p-6 rounded-xl text-center border border-green-100">
-            <div class="inline-flex items-center justify-center w-12 h-12 bg-green-100 rounded-full mb-3">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24"
+        <div class="bg-slate-50 p-6 rounded-xl text-center border border-slate-100 mt-6">
+            <div class="inline-flex items-center justify-center w-12 h-12 bg-slate-100 rounded-full mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                 </svg>
             </div>
-            <h3 class="text-green-900 font-bold mb-2">Good News</h3>
-            <p class="text-green-800 text-sm">
-                Based on the assessment, this doesn't appear to be Atopic Dermatitis requiring clinical trial
-                intervention.
+            <h3 class="text-slate-900 font-bold mb-1">No Recruiting Trials Found</h3>
+            <p class="text-slate-500 text-sm">
+                We couldn't find active trials for <strong>{{ condition }}</strong> at this moment.
+                Please consult a dermatologist for standard treatment options.
             </p>
         </div>
         {% endif %}
@@ -149,6 +141,57 @@
         </div>
     </div>
 
+    <!-- Scroll to Top Button -->
+    <button id="scrollTopBtn"
+        class="fixed bottom-6 right-6 bg-white text-blue-600 p-3 rounded-full shadow-lg border border-blue-100 opacity-0 translate-y-10 transition-all duration-300 z-50 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+        </svg>
+    </button>
+
+    <script>
+        const btn = document.getElementById('scrollTopBtn');
+
+        // Show/hide button
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 300) {
+                btn.classList.remove('opacity-0', 'translate-y-10');
+            } else {
+                btn.classList.add('opacity-0', 'translate-y-10');
+            }
+        });
+
+        // Custom bounce scroll function
+        btn.addEventListener('click', () => {
+            // Standard smooth scroll is good, but let's try to mimic a slight bounce by speed
+            // Since we can't scroll past 0, the 'bounce' is visual on the scroll speed (fast start, soft landing)
+
+            const startY = window.scrollY;
+            const duration = 800;
+            const startTime = performance.now();
+
+            function easeOutBack(x) {
+                // Modified back easing that doesn't go below 0 for scroll
+                return 1 - Math.pow(1 - x, 3);
+            }
+
+            function scroll(currentTime) {
+                const timeElapsed = currentTime - startTime;
+                let progress = Math.min(timeElapsed / duration, 1);
+
+                // Use a cubic easing for a "fast throw" effect
+                const ease = 1 - Math.pow(1 - progress, 4);
+
+                window.scrollTo(0, startY * (1 - ease));
+
+                if (timeElapsed < duration) {
+                    requestAnimationFrame(scroll);
+                }
+            }
+
+            requestAnimationFrame(scroll);
+        });
+    </script>
 </body>
 
 </html>

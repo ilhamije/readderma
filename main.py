@@ -49,9 +49,10 @@ def process_analysis(task_id: str, image_bytes: bytes):
         
         trials_data = []
         
-        # 2. If Atopic Dermatitis, fetch trials
-        if ai_result["condition"] == "Atopic Dermatitis":
-            trials_data = get_real_trials()
+        # 2. Fetch trials for the identified condition
+        # We fetch trials if the AI identified a condition
+        if ai_result.get("condition"):
+            trials_data = get_real_trials(ai_result["condition"])
         
         # 3. Store Result
         tasks_db[task_id] = {

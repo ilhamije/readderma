@@ -81,13 +81,13 @@ def get_mock_prediction():
         "raw_score": 0.0
     }
 
-def get_real_trials():
-    """Fetch real trials from ClinicalTrials.gov"""
+def get_real_trials(condition: str = "Atopic Dermatitis"):
+    """Fetch real trials from ClinicalTrials.gov for a specific condition"""
     trials_data = []
     try:
         url = "https://clinicaltrials.gov/api/v2/studies"
         params = {
-            "query.cond": "Atopic Dermatitis",
+            "query.cond": condition,
             "filter.overallStatus": "RECRUITING",
             "pageSize": 5
         }
@@ -126,7 +126,8 @@ def get_real_trials():
                 if not isinstance(phases, list):
                     phases = [phases] if phases else []
                 
-                match_reason = "This study targets patients with active Atopic Dermatitis. Your screening suggests you meet the primary inclusion criteria."
+                # Dynamic reason based on condition
+                match_reason = f"This study is recruiting patients with {condition}. Your screening analysis suggests this may be relevant to you."
 
                 trials_data.append({
                     "nct_id": ident.get("nctId", "N/A"),
@@ -137,30 +138,30 @@ def get_real_trials():
                     "match_reason": match_reason
                 })
         else:
-             trials_data = get_mock_trials()
+             trials_data = get_mock_trials(condition)
     except Exception as e:
         print(f"API Error: {e}")
-        trials_data = get_mock_trials()
+        trials_data = get_mock_trials(condition)
     
     return trials_data
 
-def get_mock_trials():
+def get_mock_trials(condition: str = "Skin Condition"):
     """Fallback mock trials"""
     return [
         {
             "nct_id": "NCT05551234",
-            "title": "Efficacy of Cream-X for Moderate Atopic Dermatitis",
+            "title": f"Topical Treatment Study for {condition}",
             "status": "RECRUITING",
             "locations": ["New York, NY", "Boston, MA"],
             "phases": ["Phase 2"],
-            "match_reason": "Matches your condition profile (Moderate AD). Includes topical treatment which matches your preference history."
+            "match_reason": f"Matches your condition profile ({condition}). Includes topical treatment."
         },
         {
             "nct_id": "NCT09998888",
-            "title": "Oral JAK Inhibitor Study for Adult AD",
+            "title": f"Advanced Therapy for {condition}",
             "status": "RECRUITING",
             "locations": ["Chicago, IL"],
             "phases": ["Phase 3"],
-            "match_reason": "Suitable for cases where topical treatments have failed. Age group 18-50."
+            "match_reason": "Suitable for cases where standard treatments have failed. Age group 18-50."
         }
     ]
