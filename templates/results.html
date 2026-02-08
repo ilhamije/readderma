@@ -10,11 +10,20 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            /* Add a white/slate fade over the waves so text is readable */
+            background-image: linear-gradient(to bottom, rgba(211, 233, 255, 0.92), rgba(248, 250, 252, 0.85)), url('/static/background.png');
+            background-repeat: repeat;
+            background-position: center;
+            background-size: 400px auto;
+            /* Reasonable size for the pattern */
+            background-attachment: fixed;
+            /* Parallax-like effect, keeps background stable */
         }
     </style>
 </head>
 
-<body class="bg-slate-50 text-slate-900 min-h-screen p-4 pb-20">
+<body class="text-slate-900 min-h-screen p-4 pb-20">
 
     <div class="max-w-md mx-auto w-full">
         <!-- Header -->
@@ -128,8 +137,7 @@
             </div>
             <h3 class="text-slate-900 font-bold mb-1">No Recruiting Trials Found</h3>
             <p class="text-slate-500 text-sm">
-                We couldn't find active trials for <strong>{{ condition }}</strong> at this moment.
-                Please consult a dermatologist for standard treatment options.
+                We couldn't find related active trials.
             </p>
         </div>
         {% endif %}

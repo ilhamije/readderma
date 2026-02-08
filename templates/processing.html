@@ -10,6 +10,15 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            /* Add a white/slate fade over the waves so text is readable */
+            background-image: linear-gradient(to bottom, rgba(211, 233, 255, 0.92), rgba(248, 250, 252, 0.85)), url('/static/background.png');
+            background-repeat: repeat;
+            background-position: center;
+            background-size: 400px auto;
+            /* Reasonable size for the pattern */
+            background-attachment: fixed;
+            /* Parallax-like effect, keeps background stable */
         }
 
         @keyframes shimmer {

@@ -7,12 +7,10 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: always
-    expose:
-      - "8000"
+    ports:
+      - "8000:8000"
     environment:
       - PYTHONUNBUFFERED=1
-    command: >
-      uvicorn main:app --host 0.0.0.0 --port 8000
     networks:
       - app_network
 
@@ -32,7 +30,7 @@ services:
     networks:
       - app_network
 
-  certbot:
+  certbot2:
     image: certbot/certbot:latest
     container_name: certbot
     volumes:

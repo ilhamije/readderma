@@ -8,7 +8,7 @@ import asyncio
 import time
 from dotenv import load_dotenv
 from contextlib import asynccontextmanager
-from services import predict_skin_condition, get_real_trials, get_mock_trials, load_ai_model
+from services import predict_skin_condition, get_real_trials, get_mock_trials, load_ai_model, check_is_skin
 
 load_dotenv()
 
@@ -28,9 +28,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # Templates
 templates = Jinja2Templates(directory="templates")
 
-# In-memory storage for results (No DB as per constraints)
-# Key: task_id, Value: dict with status and result
-# In a real app, use Redis or DB.
+# In-memory storage for results
 tasks_db = {}
 
 @app.get("/", response_class=HTMLResponse)
@@ -40,21 +38,35 @@ async def read_root(request: Request):
 def process_analysis(task_id: str, image_bytes: bytes):
     """Background task to process image and fetch trials (Sync for threadpool execution)"""
     try:
-        # 1. AI Analysis
-        # Simulating a slight delay to make the skeleton loader visible and meaningful
-        # Remove sleep in production if strictly speed-focused, but good for UX demo
-        time.sleep(1.5) 
+        # 1. Validation Logic
+        # Simulating a slight delay for UX
+        time.sleep(1.0) 
         
+        # Check if it is a skin image
+        is_skin, description = check_is_skin(image_bytes)
+        
+        if not is_skin:
+             tasks_db[task_id] = {
+                "status": "completed",
+                "data": {
+                    "condition": "Not a Skin Condition",
+                    "confidence": "High",
+                    "explanation": f"{description}. This tool is designed to analyze skin conditions only.",
+                    "trials": []
+                }
+            }
+             return
+
+        # 2. AI Analysis (only if validation passes)
         ai_result = predict_skin_condition(image_bytes)
         
         trials_data = []
         
-        # 2. Fetch trials for the identified condition
-        # We fetch trials if the AI identified a condition
+        # 3. Fetch trials for the identified condition
         if ai_result.get("condition"):
             trials_data = get_real_trials(ai_result["condition"])
         
-        # 3. Store Result
+        # 4. Store Result
         tasks_db[task_id] = {
             "status": "completed",
             "data": {
@@ -119,4 +131,4 @@ async def result_page(request: Request, task_id: str):
     })
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8080, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

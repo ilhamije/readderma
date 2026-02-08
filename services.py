@@ -1,11 +1,63 @@
 import io
+import base64
+import json
+import random
 from PIL import Image
 from transformers import pipeline
 import requests
 import os
+from openai import OpenAI
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Global classifier variable
 classifier = None
+
+# Initialize OpenAI client
+client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+
+def check_is_skin(image_bytes: bytes):
+    """
+    Use OpenAI to check if the image is a skin condition.
+    Returns: (is_skin_disease: bool, description: str)
+    """
+    if not client.api_key:
+        print("Warning: OPENAI_API_KEY not found. Skipping validation.")
+        # If no key, we assume it's valid to not block the user, or return False if strict.
+        # Let's return True to allow the app to work without OpenAI locally if needed.
+        return True, "Validation skipped (No API Key)"
+
+    try:
+        base64_image = base64.b64encode(image_bytes).decode('utf-8')
+        
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {
+                    "role": "system",
+                    "content": """Analyze if this image contains a visible skin condition, rash, lesion, or dermatological concern.
+                    Return a JSON object: {"is_skin_disease": boolean, "description": "string"}
+                    Rules: true if potential skin problem, false otherwise (healthy portrait, object, animal)."""
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": "Is this a skin disease image?"},
+                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
+                    ]
+                }
+            ],
+            response_format={"type": "json_object"},
+            max_tokens=150
+        )
+        content = json.loads(response.choices[0].message.content)
+        return content.get("is_skin_disease", False), content.get("description", "Unknown content")
+        
+    except Exception as e:
+        print(f"OpenAI Validation Error: {e}")
+        # Fail open: let the local model try if OpenAI fails
+        return True, "Validation error"
 
 def load_ai_model():
     """Load the Hugging Face model on startup."""
