@@ -15,7 +15,13 @@ load_dotenv()
 classifier = None
 
 # Initialize OpenAI client
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+api_key = os.getenv("OPENAI_API_KEY")
+client = None
+if api_key:
+    try:
+        client = OpenAI(api_key=api_key)
+    except Exception as e:
+        print(f"Warning: Failed to initialize OpenAI client: {e}")
 
 def check_is_skin(image_bytes: bytes):
     """
