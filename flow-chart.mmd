@@ -1,0 +1,16 @@
+flowchart TD
+    A[User Uploads Image] --> B[Upload Layer]
+
+    B --> C[OpenAI API<br/>Image Check]
+
+    C -->|Not Skin Disease| D[Return<br/>False Page]
+
+    C -->|Skin Disease| E[Skin Disease Pipeline]
+
+    E --> F[Model:<br/>dinov2-base-finetuned-SkinDisease]
+
+    F --> G[Analyze Skin Condition]
+
+    G --> H[Query Clinical Trials<br/>clinicaltrials.gov]
+
+    H --> I[Return Result Page<br/>• Diagnosis Insight<br/>• Recruiting Trials List]
